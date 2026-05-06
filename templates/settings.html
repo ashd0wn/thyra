@@ -1,0 +1,406 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Settings</h2>
+</div>
+
+<!-- ── First-run WiFi wizard ─────────────────────────────────────────────── -->
+{% if s.first_run == '1' %}
+<div class="wizard-banner" id="wifiWizard">
+  <div class="wizard-inner">
+    <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+    <div>
+      <strong>Configuration WiFi — Premier démarrage</strong>
+      <p>Connectez ce Thyra Player à votre réseau WiFi local pour le gérer sans portail captif.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openWifiWizard()">Configurer le WiFi</button>
+    <button class="btn btn-ghost" onclick="dismissWizard()">Plus tard</button>
+  </div>
+</div>
+{% endif %}
+
+<form method="POST" action="/settings" id="settingsForm">
+
+  <!-- ── Général ────────────────────────────────────────────────────────── -->
+  <div class="settings-card">
+    <div class="settings-cols">
+      <div class="settings-left">
+
+        <div class="form-group">
+          <label>Player name</label>
+          <input type="text" name="player_name" value="{{ s.player_name or 'Thyra Player' }}">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group half">
+            <label>Default duration <span class="label-unit">(secondes)</span></label>
+            <input type="number" name="default_duration"
+                   value="{{ s.default_duration or '10' }}" min="1" max="86400">
+          </div>
+          <div class="form-group half">
+            <label>Default streaming duration <span class="label-unit">(secondes)</span></label>
+            <input type="number" name="default_streaming_duration"
+                   value="{{ s.default_streaming_duration or '300' }}" min="1" max="86400">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Audio output</label>
+          <select name="audio_output">
+            <option value="hdmi"  {% if s.audio_output == 'hdmi'  %}selected{% endif %}>HDMI</option>
+            <option value="local" {% if s.audio_output == 'local' %}selected{% endif %}>Local (jack 3.5mm)</option>
+            <option value="auto"  {% if s.audio_output == 'auto'  %}selected{% endif %}>Auto</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Date format</label>
+          <select name="date_format">
+            <option value="year-month-day" {% if s.date_format == 'year-month-day' %}selected{% endif %}>year-month-day</option>
+            <option value="day-month-year" {% if s.date_format == 'day-month-year' %}selected{% endif %}>day-month-year</option>
+            <option value="month-day-year" {% if s.date_format == 'month-day-year' %}selected{% endif %}>month-day-year</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Authentication</label>
+          <select name="auth_backend">
+            <option value="basic"    {% if s.auth_backend == 'basic'    %}selected{% endif %}>Basic</option>
+            <option value="disabled" {% if s.auth_backend == 'disabled' %}selected{% endif %}>Disabled (réseau local sécurisé uniquement)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" id="currentPwd" autocomplete="current-password"
+                 placeholder="Mot de passe actuel">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group half">
+            <label>New Password</label>
+            <input type="password" id="newPwd" autocomplete="new-password"
+                   placeholder="Nouveau mot de passe">
+          </div>
+          <div class="form-group half">
+            <label>Confirm Password</label>
+            <input type="password" id="confirmPwd" autocomplete="new-password"
+                   placeholder="Confirmer">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>User</label>
+          <input type="text" value="{{ session.get('username','') }}" disabled>
+        </div>
+
+      </div><!-- /settings-left -->
+
+      <div class="settings-right">
+
+        <div class="toggle-row">
+          <span>Show splash screen</span>
+          <label class="toggle-switch">
+            <input type="checkbox" name="show_splash" value="1"
+                   {% if s.show_splash == '1' %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Default assets</span>
+          <label class="toggle-switch">
+            <input type="checkbox" name="default_assets" value="1"
+                   {% if s.default_assets == '1' %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Shuffle playlist</span>
+          <label class="toggle-switch">
+            <input type="checkbox" name="shuffle_playlist" value="1"
+                   {% if s.shuffle_playlist == '1' %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Use 24-hour clock</span>
+          <label class="toggle-switch">
+            <input type="checkbox" name="use_24h_clock" value="1"
+                   {% if s.use_24h_clock == '1' %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Debug logging</span>
+          <label class="toggle-switch">
+            <input type="checkbox" name="debug_logging" value="1"
+                   {% if s.debug_logging == '1' %}checked{% endif %}>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+      </div><!-- /settings-right -->
+    </div><!-- /settings-cols -->
+
+    <div class="settings-actions">
+      <button type="button" class="btn btn-ghost" onclick="cancelSettings()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="savePassword()">Save Settings</button>
+    </div>
+  </div>
+
+  <!-- ── Affichage ─────────────────────────────────────────────────────── -->
+  <div class="settings-card">
+    <h3 class="settings-section-title">Affichage</h3>
+    <div class="form-row">
+      <div class="form-group half">
+        <label>Rotation écran</label>
+        <select name="display_rotate">
+          <option value="0" {% if s.display_rotate == '0' %}selected{% endif %}>Normal (0°)</option>
+          <option value="1" {% if s.display_rotate == '1' %}selected{% endif %}>90° (horaire)</option>
+          <option value="2" {% if s.display_rotate == '2' %}selected{% endif %}>180°</option>
+          <option value="3" {% if s.display_rotate == '3' %}selected{% endif %}>270° (anti-horaire)</option>
+        </select>
+      </div>
+      <div class="form-group half">
+        <label>Overscan</label>
+        <select name="overscan">
+          <option value="0" {% if s.overscan == '0' %}selected{% endif %}>Désactivé</option>
+          <option value="1" {% if s.overscan == '1' %}selected{% endif %}>Activé</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Portail captif WiFi ─────────────────────────────────────────────── -->
+  <div class="settings-card">
+    <h3 class="settings-section-title">
+      Portail captif WiFi
+      <span class="badge badge-info">Fonctionnalité exclusive Thyra</span>
+    </h3>
+    <p class="settings-desc">
+      Sans câble Ethernet, le Pi crée un hotspot WiFi autonome.
+      Connectez-vous au réseau <strong>{{ s.ap_ssid or 'Thyra' }}</strong>
+      pour accéder à l'interface d'administration.
+    </p>
+
+    <div class="form-row">
+      <div class="form-group half">
+        <label>Portail captif activé</label>
+        <select name="ap_enabled">
+          <option value="0" {% if s.ap_enabled == '0' %}selected{% endif %}>Non</option>
+          <option value="1" {% if s.ap_enabled == '1' %}selected{% endif %}>Oui</option>
+        </select>
+      </div>
+      <div class="form-group half">
+        <label>SSID</label>
+        <input type="text" name="ap_ssid" value="{{ s.ap_ssid or 'Thyra' }}" maxlength="32">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group half">
+        <label>Mot de passe WiFi <span class="label-unit">(min 8 car., vide = ouvert)</span></label>
+        <input type="text" name="ap_password" value="{{ s.ap_password or '' }}" maxlength="63">
+      </div>
+      <div class="form-group half">
+        <label>Canal WiFi</label>
+        <select name="ap_channel">
+          {% for c in [1,2,3,4,5,6,7,8,9,10,11] %}
+          <option value="{{ c }}" {% if s.ap_channel == c|string %}selected{% endif %}>Canal {{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    {% if qr_exists %}
+    <div class="qr-section">
+      <p class="text-muted">Scannez ce QR code pour rejoindre le réseau WiFi Thyra :</p>
+      <img src="/static/img/wifi_qr.png" alt="QR WiFi" class="qr-img">
+      <div class="qr-info">
+        <span>SSID : <strong>{{ s.ap_ssid }}</strong></span>
+        <span>IP : <strong>192.168.73.1</strong></span>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="ap-status-bar" id="apStatusBar">
+      <span id="apStatusText">Vérification…</span>
+      <button type="button" class="btn btn-small btn-ghost" onclick="applyAP()">
+        Appliquer maintenant
+      </button>
+    </div>
+  </div>
+
+</form>
+
+<!-- ── Gestion des utilisateurs ──────────────────────────────────────────── -->
+<div class="settings-card">
+  <h3 class="settings-section-title">Utilisateurs</h3>
+  <table class="data-table">
+    <thead>
+      <tr><th>Identifiant</th><th>Rôle</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}</td>
+        <td><span class="badge badge-{{ u.role }}">{{ u.role }}</span></td>
+        <td>
+          <button class="btn-icon" onclick="openChangePassword({{ u.id }}, '{{ u.username }}')" title="Changer le mot de passe">
+            <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+          </button>
+          {% if u.id != session.get('user_id') %}
+          <button class="btn-icon btn-danger" onclick="deleteUser({{ u.id }}, '{{ u.username }}')" title="Supprimer">
+            <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <button class="btn btn-ghost" style="margin-top:12px" onclick="openAddUser()">
+    + Ajouter un utilisateur
+  </button>
+</div>
+
+<!-- ── Actions système ────────────────────────────────────────────────────── -->
+<div class="settings-card">
+  <h3 class="settings-section-title">Système</h3>
+  <div class="system-actions">
+    <button class="btn btn-ghost" onclick="reloadViewer()">
+      <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      Recharger le viewer
+    </button>
+    <button class="btn btn-danger" onclick="confirmReboot()">
+      <svg viewBox="0 0 24 24"><path d="M13 3v9h8l-11 11V12H2L13 3z"/></svg>
+      Redémarrer le Pi
+    </button>
+  </div>
+</div>
+
+<!-- ── Modal : changer mot de passe utilisateur (admin) ─────────────────── -->
+<div class="modal-backdrop" id="changePwdModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Changer le mot de passe</h3>
+      <button class="modal-close" onclick="closeChangePwd()">✕</button>
+    </div>
+    <p class="text-muted" id="changePwdSubtitle"></p>
+    <div class="form-group">
+      <label>Nouveau mot de passe</label>
+      <input type="password" id="adminNewPwd" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label>Confirmer</label>
+      <input type="password" id="adminConfirmPwd" autocomplete="new-password">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeChangePwd()">Annuler</button>
+      <button class="btn btn-primary" onclick="submitChangePwd()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal : ajouter utilisateur ──────────────────────────────────────── -->
+<div class="modal-backdrop" id="addUserModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Nouvel utilisateur</h3>
+      <button class="modal-close" onclick="closeAddUser()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Identifiant</label>
+      <input type="text" id="newUsername" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Mot de passe</label>
+      <input type="password" id="newPassword" autocomplete="new-password">
+    </div>
+    <div class="form-group">
+      <label>Rôle</label>
+      <select id="newRole">
+        <option value="viewer">Viewer (lecture seule)</option>
+        <option value="editor">Editor (gestion médias)</option>
+        <option value="admin">Admin (accès total)</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAddUser()">Annuler</button>
+      <button class="btn btn-primary" onclick="createUser()">Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal : wizard WiFi first-run ─────────────────────────────────────── -->
+<div class="modal-backdrop" id="wifiWizardModal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>Connexion au réseau WiFi local</h3>
+      <button class="modal-close" onclick="closeWifiWizard()">✕</button>
+    </div>
+
+    <div id="wifiStep1">
+      <p class="settings-desc">
+        Sélectionnez votre réseau WiFi local. Thyra s'y connectera et désactivera
+        le portail captif une fois la connexion établie.
+      </p>
+      <div class="form-group">
+        <label>Réseau WiFi</label>
+        <div style="display:flex;gap:8px">
+          <select id="wifiSsidSelect" style="flex:1">
+            <option value="">Scan en cours…</option>
+          </select>
+          <button class="btn btn-ghost" onclick="scanWifi()">
+            <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            Actualiser
+          </button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Ou saisir manuellement</label>
+        <input type="text" id="wifiSsidManual" placeholder="Nom du réseau (SSID)">
+      </div>
+      <div class="form-group">
+        <label>Mot de passe WiFi</label>
+        <input type="password" id="wifiPassword" placeholder="Laisser vide si réseau ouvert">
+      </div>
+    </div>
+
+    <div id="wifiStep2" style="display:none;text-align:center;padding:32px 0">
+      <div class="spinner" style="margin:0 auto 16px"></div>
+      <p>Connexion en cours…</p>
+      <p class="text-muted">Cette opération peut prendre 10 à 20 secondes.</p>
+    </div>
+
+    <div id="wifiStep3" style="display:none;text-align:center;padding:32px 0">
+      <div style="font-size:3rem">✅</div>
+      <p><strong>Connexion réussie !</strong></p>
+      <p class="text-muted">Nouvelle adresse IP : <strong id="wifiNewIp"></strong></p>
+      <p class="text-muted">Accédez à l'interface via <span id="wifiNewUrl" style="color:var(--accent)"></span></p>
+    </div>
+
+    <div id="wifiStep4" style="display:none;text-align:center;padding:32px 0">
+      <div style="font-size:3rem">❌</div>
+      <p><strong>Connexion échouée.</strong></p>
+      <p class="text-muted" id="wifiErrMsg">Vérifiez le SSID et le mot de passe.</p>
+      <button class="btn btn-ghost" onclick="resetWifiWizard()">Réessayer</button>
+    </div>
+
+    <div class="modal-actions" id="wifiWizardActions">
+      <button class="btn btn-ghost" onclick="closeWifiWizard()">Annuler</button>
+      <button class="btn btn-primary" onclick="connectWifi()">Connecter</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/settings.js"></script>
+{% endblock %}

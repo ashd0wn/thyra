@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion — Thyra</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="/static/img/logo.svg" alt="Thyra">
+      <h1>Thyra</h1>
+      <p>Digital Signage Open Source</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for cat, msg in messages %}
+          <div class="flash flash-{{ cat }}">{{ msg }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="/login" class="login-form">
+      <input type="hidden" name="next" value="{{ request.args.get('next','') }}">
+
+      <div class="form-group">
+        <label for="username">Identifiant</label>
+        <input type="text" id="username" name="username"
+               autocomplete="username" autocapitalize="none"
+               placeholder="admin" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" name="password"
+               autocomplete="current-password"
+               placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full">Se connecter</button>
+    </form>
+
+    <p class="login-footer">Thyra — Bare-metal digital signage</p>
+  </div>
+</body>
+</html>

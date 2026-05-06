@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.venv/
+*.egg-info/
+
+# Base de données (ne pas versionner les données de prod)
+db/
+*.db
+*.sqlite
+
+# Assets uploadés
+assets/
+
+# Logs
+*.log
+logs/
+
+# Environnement
+.env
+.env.*
+
+# Splash généré
+static/img/splash.png
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo

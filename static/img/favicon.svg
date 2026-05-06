@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#818cf8"/>
+      <stop offset="100%" style="stop-color:#6366f1"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#c7d2fe"/>
+      <stop offset="100%" style="stop-color:#818cf8"/>
+    </linearGradient>
+  </defs>
+  <!-- Architrave (linteau grec) -->
+  <rect x="3" y="6" width="42" height="5" rx="1.5" fill="url(#g1)"/>
+  <!-- Colonnes gauche et droite -->
+  <rect x="5"  y="11" width="5" height="26" rx="1" fill="url(#g1)"/>
+  <rect x="38" y="11" width="5" height="26" rx="1" fill="url(#g1)"/>
+  <!-- Ouverture centrale - la θύρα -->
+  <rect x="12" y="11" width="24" height="26" rx="1" fill="#0f0f13" opacity=".9"/>
+  <!-- Lueur intérieure - le monde au-delà -->
+  <rect x="14" y="13" width="20" height="22" rx="1" fill="url(#g2)" opacity=".15"/>
+  <!-- Triangle lumineux (rayon de lumière qui traverse) -->
+  <polygon points="24,16 18,33 30,33" fill="url(#g1)" opacity=".7"/>
+  <!-- Stylobate (base) -->
+  <rect x="2" y="37" width="44" height="5" rx="1.5" fill="url(#g1)"/>
+</svg>

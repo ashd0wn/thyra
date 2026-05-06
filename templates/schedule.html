@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% block title %}Schedule Overview{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Schedule Overview</h2>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="prevAsset()">
+      <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+      Previous Asset
+    </button>
+    <button class="btn btn-ghost" onclick="nextAsset()">
+      Next Asset
+      <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+    </button>
+    <button class="btn btn-primary" onclick="openAddModal()">
+      <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+      Add Asset
+    </button>
+  </div>
+</div>
+
+<!-- Active Assets -->
+<div class="assets-section">
+  <h3 class="section-label">Active assets</h3>
+  {% if active_assets %}
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width:32px"></th>
+        <th>Name</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Duration</th>
+        <th>Activity</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="activeBody">
+      {% for a in active_assets %}
+      <tr id="row-{{ a.asset_id }}" draggable="true">
+        <td class="drag-handle">
+          <svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        </td>
+        <td>
+          <span class="asset-type-icon">
+            {% if a.asset_type == 'video' %}🎬
+            {% elif a.asset_type == 'webpage' %}🌐
+            {% else %}🖼{% endif %}
+          </span>
+          {{ a.name }}
+        </td>
+        <td class="text-muted">{{ a.start_date or '—' }}</td>
+        <td class="text-muted">{{ a.end_date or '—' }}</td>
+        <td>
+          {% if a.asset_type == 'video' %}
+            {{ a.duration }} sec
+          {% else %}
+            {{ a.duration }} sec
+          {% endif %}
+        </td>
+        <td>
+          <label class="toggle-switch">
+            <input type="checkbox" {% if a.is_active %}checked{% endif %}
+                   onchange="toggleAsset('{{ a.asset_id }}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </td>
+        <td class="actions-cell">
+          <button class="btn-icon" onclick="downloadAsset('{{ a.asset_id }}','{{ a.uri }}')" title="Télécharger">
+            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          </button>
+          <button class="btn-icon" onclick="editAsset('{{ a.asset_id }}')" title="Modifier">
+            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          </button>
+          <button class="btn-icon btn-danger" onclick="deleteAsset('{{ a.asset_id }}','{{ a.name|e }}')" title="Supprimer">
+            <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state-inline">Aucun asset actif. Cliquez sur <strong>Add Asset</strong> pour commencer.</div>
+  {% endif %}
+</div>
+
+<!-- Inactive Assets -->
+{% if inactive_assets %}
+<div class="assets-section" style="margin-top:32px">
+  <h3 class="section-label">Inactive assets</h3>
+  <table class="data-table inactive-table">
+    <thead>
+      <tr>
+        <th style="width:32px"></th>
+        <th>Name</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Duration</th>
+        <th>Activity</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in inactive_assets %}
+      <tr id="row-{{ a.asset_id }}">
+        <td class="drag-handle">
+          <svg viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+        </td>
+        <td>
+          <span class="asset-type-icon text-muted">
+            {% if a.asset_type == 'video' %}🎬
+            {% elif a.asset_type == 'webpage' %}🌐
+            {% else %}🖼{% endif %}
+          </span>
+          <span class="text-muted">{{ a.name }}</span>
+        </td>
+        <td class="text-muted">{{ a.start_date or '—' }}</td>
+        <td class="text-muted">{{ a.end_date or '—' }}</td>
+        <td class="text-muted">{{ a.duration }} sec</td>
+        <td>
+          <label class="toggle-switch">
+            <input type="checkbox" {% if a.is_active %}checked{% endif %}
+                   onchange="toggleAsset('{{ a.asset_id }}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+        </td>
+        <td class="actions-cell">
+          <button class="btn-icon" onclick="downloadAsset('{{ a.asset_id }}','{{ a.uri }}')" title="Télécharger">
+            <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          </button>
+          <button class="btn-icon" onclick="editAsset('{{ a.asset_id }}')" title="Modifier">
+            <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          </button>
+          <button class="btn-icon btn-danger" onclick="deleteAsset('{{ a.asset_id }}','{{ a.name|e }}')" title="Supprimer">
+            <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- ── Add Asset Modal ─────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="addModal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>Add Asset</h3>
+      <button class="modal-close" onclick="closeAddModal()">✕</button>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab active" onclick="switchTab('upload')">Fichier local</button>
+      <button class="tab" onclick="switchTab('url')">URL / Vidéo</button>
+      <button class="tab" onclick="switchTab('web')">Page Web</button>
+    </div>
+
+    <div class="tab-content" id="tab-upload">
+      <div class="dropzone" id="dropzone">
+        <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+        <p>Glisser un fichier ici<br><small>Images · Vidéos · HTML — max 1 Go</small></p>
+        <input type="file" id="fileInput" accept="image/*,video/*,.html,.htm" style="display:none"
+               onchange="previewFile(this)">
+      </div>
+      <div class="file-preview" id="filePreview" style="display:none">
+        <span id="previewName"></span>
+        <button type="button" class="btn-small btn-ghost" onclick="clearFile()">✕</button>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-url" style="display:none">
+      <div class="form-group">
+        <label>URL directe (image ou vidéo)</label>
+        <input type="url" id="urlInput" placeholder="https://example.com/video.mp4">
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-web" style="display:none">
+      <div class="form-group">
+        <label>URL de la page web</label>
+        <input type="url" id="webInput" placeholder="https://example.com">
+      </div>
+    </div>
+
+    <!-- Champs communs -->
+    <div class="form-group" style="margin-top:16px">
+      <label>Nom (optionnel)</label>
+      <input type="text" id="assetName" placeholder="Laissez vide pour utiliser le nom du fichier">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group half">
+        <label>Play for</label>
+        <select id="assetPlayFor" onchange="toggleDateFields()">
+          <option value="manual">Manual (permanent)</option>
+          <option value="scheduled">Scheduled (plages horaires)</option>
+        </select>
+      </div>
+      <div class="form-group half">
+        <label>Duration (secondes)</label>
+        <input type="number" id="assetDuration" value="10" min="1" max="86400">
+      </div>
+    </div>
+
+    <div class="form-row" id="dateFields" style="display:none">
+      <div class="form-group half">
+        <label>Start Date</label>
+        <input type="datetime-local" id="assetStartDate">
+      </div>
+      <div class="form-group half">
+        <label>End Date</label>
+        <input type="datetime-local" id="assetEndDate">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAsset()" id="submitBtn">Add Asset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Asset Modal ─────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="editModal" style="display:none">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>Edit Asset</h3>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="editName">
+    </div>
+
+    <div class="form-group">
+      <label>Asset Location</label>
+      <div class="asset-location-box" id="editLocation">—</div>
+    </div>
+
+    <div class="form-group">
+      <label>Asset Type</label>
+      <select id="editType" disabled>
+        <option value="image">Image</option>
+        <option value="video">Video</option>
+        <option value="webpage">Webpage</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Play for</label>
+      <select id="editPlayFor" onchange="toggleEditDateFields()">
+        <option value="manual">Manual (permanent)</option>
+        <option value="scheduled">Scheduled (plages horaires)</option>
+      </select>
+    </div>
+
+    <div class="form-row" id="editDateFields">
+      <div class="form-group half">
+        <label>Start Date</label>
+        <input type="datetime-local" id="editStartDate">
+      </div>
+      <div class="form-group half">
+        <label>End Date</label>
+        <input type="datetime-local" id="editEndDate">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Duration (secondes)</label>
+      <div style="display:flex;align-items:center;gap:10px">
+        <input type="number" id="editDuration" min="1" max="86400" style="width:120px">
+        <span class="text-muted">seconds</span>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/schedule.js"></script>
+{% endblock %}
