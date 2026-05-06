@@ -11,7 +11,7 @@ FLAG_FILE  = BASE_DIR / "reload.flag"
 API_BASE   = "http://127.0.0.1:5000"
 POLL_INTERVAL   = 30
 RETRY_INTERVAL  = 5
-SPLASH_DELAY    = 30  # secondes avant d'afficher le splash si playlist vide
+SPLASH_DELAY    = 30
 
 logging.basicConfig(level=logging.INFO,
     format="%(asctime)s [viewer] %(levelname)s %(message)s")
@@ -137,7 +137,7 @@ def resolve_path(asset):
     if local and local.exists(): return str(local)
     return uri if uri.startswith("http") else API_BASE + uri
 
-# ── Slideshow feh — zéro coupure entre images ─────────────────────────────
+# ── Slideshow feh — boucle infinie, zéro fermeture entre cycles ───────────
 def play_image_sequence(assets):
     global _current_proc
     import urllib.request
@@ -165,24 +165,21 @@ def play_image_sequence(assets):
     duration = durations[0] if durations else 10
     env      = _display_env()
 
-    log.info("Slideshow feh — %d images × %ds", len(paths), duration)
+    log.info("Slideshow feh — %d images × %ds (boucle infinie)", len(paths), duration)
     cmd = ["feh","--fullscreen","--hide-pointer","--scale-down",
            "--auto-zoom","--no-menus","--borderless","--image-bg","black",
-           "--slideshow-delay", str(duration),
-           "--cycle-once"] + paths
+           "--slideshow-delay", str(duration)] + paths
+    # Pas de --cycle-once : feh boucle indéfiniment, zéro noir entre cycles
     try:
         _current_proc = subprocess.Popen(cmd, env=env,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        total   = duration * len(paths)
-        elapsed = 0
-        while elapsed < total + 2 and _current_proc.poll() is None:
+        while _current_proc.poll() is None:
             has_reload, direction = reload_requested()
             if has_reload:
                 FLAG_FILE.write_text(direction)
                 kill_current()
                 return False
-            time.sleep(0.5)
-            elapsed += 0.5
+            time.sleep(1)
         kill_current()
         return True
     except Exception as e:
@@ -235,23 +232,18 @@ def play_video(asset, duration, single_asset=False):
     if not vlc_bin:
         log.error("VLC introuvable"); time.sleep(max(duration,5)); return
 
-    if single_asset:
-        loop_args = ["--loop"]
-    else:
-        loop_args = ["--no-loop","--play-and-exit"]
+    loop_args = ["--loop"] if single_asset else ["--no-loop","--play-and-exit"]
 
     cmd = [vlc_bin,"--no-osd"] + loop_args + [
           "--no-video-title-show","--fullscreen",
           "--vout=gl","--aout=alsa","--no-qt-error-dialogs",
           "--aspect-ratio=16:9","--zoom=2", target]
 
-    log.info("VIDEO %s [vlc loop=%s] — %ds",
-             asset["name"], single_asset, duration)
+    log.info("VIDEO %s [loop=%s] — %ds", asset["name"], single_asset, duration)
     try:
         _current_proc = subprocess.Popen(cmd, env=env,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if single_asset:
-            # Boucle infinie — surveille le reload
             while _current_proc.poll() is None:
                 has_reload, direction = reload_requested()
                 if has_reload:
@@ -296,19 +288,20 @@ def main():
     log.info("Thyra viewer démarré — HOME=%s", BASE_DIR)
     wait_for_server()
 
-    settings = fetch_api("/api/settings", {})
-    apply_rotation(settings)
-    set_black_background()
+    settings         = fetch_api("/api/settings", {})
+    initial_playlist = fetch_api("/api/playlist", [])
 
-    # Splash uniquement au démarrage initial
-    if settings.get("show_splash", "1") == "1":
+    apply_rotation(settings)
+
+    if not initial_playlist and settings.get("show_splash", "1") == "1":
         show_splash()
+    else:
         set_black_background()
 
-    playlist    = []
-    playlist_ts = 0
+    playlist    = initial_playlist
+    playlist_ts = time.time()
     idx         = 0
-    empty_since = None
+    empty_since = None if initial_playlist else time.time()
 
     while not _should_exit:
         now = time.time()
@@ -331,6 +324,7 @@ def main():
                 log.info("Playlist mise à jour : %d asset(s)", len(new_pl))
                 playlist = new_pl
                 idx = 0
+                kill_current()
             playlist_ts = now
 
         if not playlist:
@@ -340,18 +334,17 @@ def main():
                 log.info("Playlist vide — fond noir")
             elif (now - empty_since > SPLASH_DELAY
                   and settings.get("show_splash","1") == "1"):
-                log.info("Playlist vide depuis %ds — splash", SPLASH_DELAY)
+                log.info("Splash après %ds de vide", SPLASH_DELAY)
                 show_splash()
             time.sleep(RETRY_INTERVAL)
             continue
 
-        # Playlist non vide
         empty_since = None
 
         if idx >= len(playlist):
             idx = 0
 
-        # Slideshow feh si 100% images
+        # Slideshow feh si 100% images — boucle infinie sans fermeture
         if IMAGE_VIEWER and "feh" in IMAGE_VIEWER:
             all_images = all(a.get("asset_type") == "image" for a in playlist)
             if all_images:
