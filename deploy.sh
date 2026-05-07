@@ -451,18 +451,21 @@ configure_display_rpi() {
         || echo "disable_overscan=1" >> "$CONFIG_TXT"
     ok "Overscan désactivé"
 
-    # GPU memory : adapté à la RAM disponible
-    local mem_mb gpu_mem
+    # CMA memory : remplace gpu_mem (incompatible avec le pilote KMS/DRM sur Pi OS Bookworm)
+    # gpu_mem= est ignoré sur Pi 4/5 64bit et provoque des conflits avec le CMA
+    local mem_mb cma_size
     mem_mb=$(awk '/MemTotal/{printf "%d", $2/1024}' /proc/meminfo)
-    if   [[ $mem_mb -ge 4096 ]]; then gpu_mem=512
-    elif [[ $mem_mb -ge 2048 ]]; then gpu_mem=512
-    elif [[ $mem_mb -ge 1024 ]]; then gpu_mem=256
-    else                               gpu_mem=128
+    if   [[ $mem_mb -ge 4096 ]]; then cma_size="512M"   # Pi 4 4GB / Pi 4 8GB
+    elif [[ $mem_mb -ge 2048 ]]; then cma_size="256M"   # Pi 4 2GB
+    else                               cma_size="256M"   # Pi 3 1GB
     fi
-    grep -q "^gpu_mem=" "$CONFIG_TXT" \
-        && sed -i "s/^gpu_mem=.*/gpu_mem=${gpu_mem}/" "$CONFIG_TXT" \
-        || echo "gpu_mem=${gpu_mem}" >> "$CONFIG_TXT"
-    ok "GPU memory : ${gpu_mem} MB (RAM totale : ${mem_mb} MB)"
+    # Supprime gpu_mem si présent (conflict avec CMA)
+    sed -i '/^gpu_mem=/d' "$CONFIG_TXT" 2>/dev/null || true
+    # Ajoute ou met à jour cma-size
+    grep -q "^dtparam=cma-size=" "$CONFIG_TXT" \
+        && sed -i "s/^dtparam=cma-size=.*/dtparam=cma-size=${cma_size}/" "$CONFIG_TXT" \
+        || echo "dtparam=cma-size=${cma_size}" >> "$CONFIG_TXT"
+    ok "CMA memory : ${cma_size} (RAM totale : ${mem_mb} MB)"
 
     # Blanking et consoleblank
     if command -v raspi-config &>/dev/null; then
