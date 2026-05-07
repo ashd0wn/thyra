@@ -169,6 +169,7 @@ def play_image_sequence(assets):
     cmd = ["feh","--fullscreen","--hide-pointer","--scale-down",
            "--auto-zoom","--no-menus","--borderless","--image-bg","black",
            "--slideshow-delay", str(duration)] + paths
+    # Pas de --cycle-once : feh boucle indéfiniment, zéro noir entre cycles
     try:
         _current_proc = subprocess.Popen(cmd, env=env,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -222,22 +223,6 @@ def play_image(asset, duration):
     except FileNotFoundError:
         log.error("Viewer image introuvable"); time.sleep(duration)
 
-def get_zoom_factor():
-    """Détecte si un zoom est nécessaire (TV 4K avec source 1080p)."""
-    try:
-        out = subprocess.check_output(
-            ["xrandr"], env=_display_env(), text=True, timeout=5
-        )
-        for line in out.split("\n"):
-            if "*" in line:
-                res = line.strip().split()[0]
-                w, h = res.split("x")
-                if int(h) >= 2160:  # 4K détecté
-                    return "2"
-        return "1"  # 1080p ou moins — pas de zoom
-    except Exception:
-        return "1"
-
 def play_video(asset, duration, single_asset=False):
     global _current_proc
     target  = resolve_path(asset)
@@ -248,13 +233,11 @@ def play_video(asset, duration, single_asset=False):
         log.error("VLC introuvable"); time.sleep(max(duration,5)); return
 
     loop_args = ["--loop"] if single_asset else ["--no-loop","--play-and-exit"]
-    zoom      = get_zoom_factor()
-    log.info("Zoom VLC : %sx (résolution écran détectée)", zoom)
 
     cmd = [vlc_bin,"--no-osd"] + loop_args + [
           "--no-video-title-show","--fullscreen",
           "--vout=gl","--aout=alsa","--no-qt-error-dialogs",
-          "--aspect-ratio=16:9", f"--zoom={zoom}", target]
+          "--aspect-ratio=16:9","--zoom=2", target]
 
     log.info("VIDEO %s [loop=%s] — %ds", asset["name"], single_asset, duration)
     try:
